@@ -1,0 +1,164 @@
+CHANGELOG — mcp-server-zendesk
+================================
+
+## v1.2.0 (2025-05-12)
+
+### Added — Dual authentication support
+
+The server now supports two authentication modes, auto-detected from env vars:
+
+Mode 1 — API Token (simple, existing behavior):
+  - Set ZD_EMAIL + ZD_API_TOKEN
+  - Uses HTTP Basic Auth ({email}/token : {api_token})
+  - Tokens don't expire
+
+Mode 2 — OAuth Bearer Token (recommended for production):
+  - Set ZD_OAUTH_ACCESS_TOKEN
+  - Uses Authorization: Bearer header
+  - Automatic token refresh on 401 if ZD_OAUTH_REFRESH_TOKEN, ZD_OAUTH_CLIENT_ID,
+    and ZD_OAUTH_CLIENT_SECRET are also configured
+  - Graceful fallback: if refresh fails, raises auth error to the client
+
+### Changed
+
+- config.py: Added OAuth settings (zd_oauth_access_token, zd_oauth_refresh_token,
+  zd_oauth_client_id, zd_oauth_client_secret), auth_mode property, can_refresh_oauth property
+- zendesk_client.py: ZendeskClient now auto-detects auth mode on open(),
+  handles 401 with OAuth refresh in get/post/put, stores refreshed tokens in memory
+- tools.py: bulk_solve_tickets_by_type now returns a clear error if ZD_EMAIL is not set
+  (required for assignee filtering)
+- .env.example: Documents both auth modes with commented examples
+
+---
+
+## v1.1.0 (2025-05-12)
+
+### Added — 7 new tools (20 → 27 total)
+
+Ticket creation & comments:
+  - create_ticket: Create new tickets with subject, description, requester, priority, tags, assignee
+  - add_comment: Add public replies or internal notes to existing tickets
+
+Tag management (non-destructive):
+  - add_ticket_tags: Append tags without replacing existing ones
+  - remove_ticket_tags: Remove specific tags without affecting others
+
+Groups:
+  - list_groups: List all agent groups for routing/assignment context
+
+Automations & Macros:
+  - list_automations: List time-based business rules (fire hourly based on time conditions)
+  - list_macros: List prepared responses and actions agents can apply to tickets
+
+### Changed
+
+- zendesk_client.py: Added POST method for resource creation
+- zendesk_client.py: Added paths to allowlist: /api/v2/tickets.json, /api/v2/tickets/{id}/tags.json, /api/v2/groups.json, /api/v2/automations.json, /api/v2/automations/{id}.json, /api/v2/macros.json, /api/v2/macros/active.json, /api/v2/macros/{id}.json
+- mcp.json.example: Added list_groups, list_automations, list_macros to autoApprove (read-only)
+- Write tools (create_ticket, add_comment, add_ticket_tags, remove_ticket_tags) excluded from autoApprove
+
+---
+
+## v1.0.0 (2025-05-12)
+
+Initial release as a standalone generic Zendesk MCP server.
+Forked from zendesk-mcp and stripped of instance-specific tools.
+
+### Architecture
+
+- Async-first: All tool functions are async, using httpx.AsyncClient
+- Dispatch map: TOOL_HANDLERS dict replaces 40-line if/elif chain (O(1) lookup)
+- Lifespan management: HTTP client opened on startup, closed on shutdown
+- Proper packaging: pyproject.toml with entry point `mcp-server-zendesk`
+- Dual transport: stdio (subprocess) and HTTP/SSE (Docker/network)
+
+### Tools (20 total)
+
+Tickets:
+  - count_tickets
+  - search_tickets
+  - get_ticket
+  - get_ticket_audits
+  - get_ticket_comments
+  - edit_ticket
+  - solve_ticket
+  - bulk_solve_tickets_by_type
+
+Users & Organizations:
+  - get_user
+  - search_users
+  - get_organization
+  - search_organizations
+
+Views:
+  - get_view
+  - count_view
+  - list_view_tickets
+  - list_ticket_fields
+
+Triggers:
+  - list_triggers
+  - get_trigger
+  - search_triggers
+
+Performance:
+  - get_agent_performance_today
+
+### Improvements over original codebase
+
+1. Dispatch map replaces if/elif chain
+   - TOOL_HANDLERS dict for O(1) tool routing
+   - Eliminates 40+ lines of repetitive dispatch code
+
+2. Error masking for production
+   - MASK_ERRORS=true in .env hides internal error details from AI clients
+   - Prevents leaking URLs, emails, or stack traces in production
+
+3. Lifespan/shutdown hook
+   - stdio mode: run_stdio() opens/closes the async HTTP client
+   - HTTP mode: Starlette lifespan context manager handles startup/shutdown
+   - No more dangling connections on server exit
+
+4. Async tools + AsyncClient
+   - All tool functions are async def
+   - httpx.AsyncClient replaces sync Client
+   - Multiple SSE clients can connect concurrently without blocking
+
+5. Input validation centralized
+   - _validate_ticket_query() for query guards
+   - _validation_error() for consistent error payloads
+   - _zendesk_error_response() respects MASK_ERRORS setting
+
+6. Rate limit retry fixed
+   - Custom _is_retryable() predicate: retries on 429 and 5xx
+   - Both GET and PUT now properly retry on rate limits
+   - Previous version raised ZendeskError before tenacity could catch it
+
+7. pyproject.toml added
+   - Proper Python packaging with hatchling build backend
+   - Entry point: `mcp-server-zendesk` command
+   - Pinned dependencies with minimum versions
+
+### Removed (instance-specific tools)
+
+- search_new_starters (HR onboarding)
+- search_departures (HR offboarding)
+- get_departure_summary (HR statistics)
+- solve_visa_news_tickets (hardcoded custom field IDs)
+- search_escalated_tickets (hardcoded tag name)
+
+### Files
+
+config.py            - Settings with MASK_ERRORS support
+zendesk_client.py    - Async HTTP client with lifespan, retry, path allowlist
+tools.py             - Core ticket tools (async)
+tools_extra.py       - User, org, view, trigger, performance tools (async)
+mcp_server.py        - MCP server with dispatch map and stdio transport
+mcp_server_http.py   - HTTP/SSE transport with Starlette lifespan
+pyproject.toml       - Package metadata and entry point
+requirements.txt     - Pip-compatible dependency list
+Dockerfile           - Container image for HTTP/SSE deployment
+docker-compose.yml   - One-command deployment with env_file
+mcp.json.example     - Ready-to-use Kiro/Claude Code MCP config
+.env.example         - Environment variable template
+run_mcp.sh           - Portable shell launcher for stdio mode

@@ -70,7 +70,7 @@ Connect your AI assistant to Zendesk and ask things like:
 ### 1. Install
 
 ```bash
-git clone https://github.com/labbuilder/zendesk-mcp.git
+git clone https://github.com/kalchevs/zendesk-mcp.git
 cd zendesk-mcp
 python3 -m venv venv
 source venv/bin/activate
@@ -184,8 +184,8 @@ Add to your Claude Code MCP configuration (`~/.claude/mcp.json` or project-level
 {
   "mcpServers": {
     "zendesk": {
-      "command": "/path/to/mcp-server-zendesk/venv/bin/python3",
-      "args": ["/path/to/mcp-server-zendesk/mcp_server.py"]
+      "command": "/path/to/zendesk-mcp/venv/bin/python3",
+      "args": ["/path/to/zendesk-mcp/mcp_server.py"]
     }
   }
 }
@@ -212,7 +212,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 {
   "mcpServers": {
     "zendesk": {
-      "command": "/path/to/mcp-server-zendesk/run_mcp.sh",
+      "command": "/path/to/zendesk-mcp/run_mcp.sh",
       "args": []
     }
   }
@@ -304,5 +304,3 @@ type:ticket "exact phrase"                          # Text search
 ## License
 
 MIT
-# zendesk-mcp
-Zendesk MCP Server

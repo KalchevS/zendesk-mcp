@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "zendesk-stdio": {
+      "command": "./venv/bin/python3",
+      "args": ["./mcp_server.py"],
+      "autoApprove": [
+        "count_tickets",
+        "search_tickets",
+        "get_ticket",
+        "get_ticket_audits",
+        "get_ticket_comments",
+        "get_user",
+        "search_users",
+        "get_organization",
+        "search_organizations",
+        "get_view",
+        "count_view",
+        "list_view_tickets",
+        "list_ticket_fields",
+        "list_triggers",
+        "get_trigger",
+        "search_triggers",
+        "list_groups",
+        "list_automations",
+        "list_macros",
+        "get_agent_performance_today"
+      ]
+    },
+    "zendesk-sse": {
+      "url": "http://localhost:8080/sse",
+      "autoApprove": [
+        "count_tickets",
+        "search_tickets",
+        "get_ticket",
+        "get_ticket_audits",
+        "get_ticket_comments",
+        "get_user",
+        "search_users",
+        "get_organization",
+        "search_organizations",
+        "get_view",
+        "count_view",
+        "list_view_tickets",
+        "list_ticket_fields",
+        "list_triggers",
+        "get_trigger",
+        "search_triggers",
+        "list_groups",
+        "list_automations",
+        "list_macros",
+        "get_agent_performance_today"
+      ]
+    }
+  }
+}
